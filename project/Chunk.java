@@ -8,4 +8,12 @@ public class Chunk{
     this.body = body;
     this.size = size;
   }
+
+	public int getSize() {
+		return size;
+	}
+
+	public byte[] getBody() {
+		return body;
+	}
 }

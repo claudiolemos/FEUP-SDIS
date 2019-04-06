@@ -1,20 +1,50 @@
-class App {
+import java.rmi.registry.Registry;
+import java.rmi.registry.LocateRegistry;
+
+public class Client {
 
   private static int replicationDegree, reclaimSpace;
-  private static String filepath, peer;
+  private static String filepath, host, peer;
 
   public static void main(String[] args) {
     if(!validArgs(args))
       return;
 
-    Data data = new Data("./teste.txt",2);
-    System.out.println(data.chunks.size());
-    for(int i = 0; i < data.chunks.size(); i++)
-      System.out.println(data.chunks.get(i).body);
+    try{
+      Registry registry = LocateRegistry.getRegistry(host);
+      RMI rmi = (RMI) registry.lookup(peer);
+
+      switch (args[1]) {
+        case "BACKUP":
+          rmi.backup(filepath, replicationDegree);
+          break;
+        case "RESTORE":
+          rmi.restore(filepath);
+          break;
+        case "DELETE":
+          rmi.delete(filepath);
+          break;
+        case "RECLAIM":
+          rmi.reclaim(reclaimSpace);
+          break;
+        case "STATE":
+          rmi.state();
+          break;
+      }
+    } catch (Exception e) {
+      System.err.println("Client exception: " + e.toString());
+      e.printStackTrace();
+    }
+
+    Data data = new Data("Tux.svg",1);
   }
 
   private static boolean validArgs(String[] args) {
     if(args.length < 2) return false;
+
+    String[] ip = args[0].split("/");
+    host = ip[0];
+    peer = ip[1];
 
     switch (args[1]) {
       case "BACKUP":

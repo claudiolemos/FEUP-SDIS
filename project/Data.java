@@ -6,21 +6,21 @@ import java.io.FileInputStream;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 
-class Data implements Serializable{
+public class Data implements Serializable{
 
   private String id;
   private int replicationDegree;
   private File file;
   private ArrayList<Chunk> chunks = new ArrayList<>();
 
-  public Data(String path, int degree){
-    file = new File(path);
-    replicationDegree = degree;
-    split();
-    // id = sha256("name" + ':' + "modified" + ':' + "owner");
+  public Data(String path, int replicationDegree){
+    this.file = new File(path);
+    this.replicationDegree = replicationDegree;
+    createChunks();
+    this.id = Utils.sha256(this.file.getName() + ':' + this.file.lastModified() + ':' + this.file.getAbsoluteFile().getParent());
   }
 
-  private void split(){
+  private void createChunks(){
     byte[] buffer = new byte[64000];
 
     try{
@@ -28,18 +28,16 @@ class Data implements Serializable{
     BufferedInputStream bufferedStream = new BufferedInputStream(fileStream);
 
     int size, chunkNumber = 1;
-    while((size = bufferedStream.read(buffer)) > 0){
-      byte[] chunkBody = Arrays.copyOf(buffer, size);
-      chunks.add(new Chunk(chunkNumber++, chunkBody, size));
-    }
+    while((size = bufferedStream.read(buffer)) != -1)
+      chunks.add(new Chunk(chunkNumber++, Arrays.copyOf(buffer, size), size));
 
     if(file.length() % 64000 == 0)
       chunks.add(new Chunk(chunkNumber++, null, 0));
     }
     catch (IOException e) {
-
+      System.err.println("Client exception: " + e.toString());
+      e.printStackTrace();
     }
-
   }
 
 }
