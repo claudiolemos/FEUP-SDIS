@@ -1,3 +1,5 @@
+package file;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -5,6 +7,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.BufferedInputStream;
 import java.io.IOException;
+
+import utils.Utils;
 
 public class Data implements Serializable{
 

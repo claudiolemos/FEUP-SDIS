@@ -1,3 +1,5 @@
+package connection;
+
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
@@ -6,19 +8,26 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
+import file.*;
+import threads.*;
+import utils.Utils;
+
 public class Peer implements RMI{
 
   private static double version;
   private static int id, mcPort, mdbPort, mdrPort;
   private static String accessPoint, mcIP, mdbIP, mdrIP;
-  private static MC mc;
-  private static ScheduledThreadPoolExecutor threadPool;
+  private static Channel mc, mdb, mdr;
+  private static ScheduledThreadPoolExecutor threads;
 
   public static void main(String[] args) {
     if(!validArgs(args))
       return;
 
-    mc = new MC(mcIP, mcPort);
+    threads = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(500);
+    mc = new Channel(mcIP, mcPort);
+    mdb = new Channel(mdbIP, mdbPort);
+    mdr = new Channel(mdrIP, mdrPort);
 
     try{
       Peer peer = new Peer();
@@ -31,8 +40,13 @@ public class Peer implements RMI{
 			e.printStackTrace();
     }
 
-    // threadPool = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(250);
-    // threadPool.execute(mc);
+    // load old storage
+
+    execute(mc);
+    execute(mdb);
+    execute(mdr);
+
+    // Runtime.getRuntime().addShutdownHook(new Thread(Peer::save));
   }
 
   private static boolean validArgs(String[] args) {
@@ -49,17 +63,21 @@ public class Peer implements RMI{
     return true;
   }
 
-  public void backup(String filepath, int replicationDegree){
+  public synchronized void backup(String filepath, int replicationDegree){
     Data file = new Data(filepath, replicationDegree);
 
     for(int i = 0; i < file.getChunks().size(); i++){
       try{
         Chunk chunk = file.getChunks().get(i);
         String header = "PUTCHUNK " + version + " " + id + " " + file.getID() + " " + chunk.getNumber() + " " + replicationDegree + "\r\n\r\n";
-        System.out.println("Sent " + header.substring(0,header.length() - 4));
+        System.out.println("Sending " + header.substring(0,header.length() - 4));
         byte[] message = Utils.concatenate(header.getBytes("US-ASCII"), chunk.getBody());
+        SendMessage thread = new SendMessage(message, Utils.Channel.MDB);
+        execute(thread);
+        Thread.sleep(500);
+        // threads.schedule(new ManagePutChunkThread(message, 1, file.getId(), chunk.getNr(), replicationDegree), 1, TimeUnit.SECONDS);
       }
-      catch (UnsupportedEncodingException e) {
+      catch (InterruptedException | UnsupportedEncodingException e) {
         System.err.println(e.toString());
         e.printStackTrace();
       }
@@ -71,4 +89,21 @@ public class Peer implements RMI{
   public void delete(String filepath){System.out.println("DELETE" + filepath);}
   public void reclaim(int reclaimSpace){System.out.println("RECLAIM" + reclaimSpace);}
   public void state(){System.out.println("STATE");}
+
+  public static Channel getChannel(Utils.Channel channel){
+    switch (channel) {
+      case MC:
+        return mc;
+      case MDB:
+        return mdb;
+      case MDR:
+        return mdr;
+      default:
+        return null;
+    }
+  }
+
+  public static void execute(Runnable thread){
+    threads.execute(thread);
+  }
 }

@@ -1,6 +1,10 @@
+package utils;
+
 import java.security.MessageDigest;
 
 public final class Utils {
+  public enum Channel {MC, MDB, MDR}
+
   public static String sha256(String base) {
       try{
           MessageDigest digest = MessageDigest.getInstance("SHA-256");
