@@ -3,6 +3,8 @@ import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
 public class Peer implements RMI{
 
@@ -28,6 +30,9 @@ public class Peer implements RMI{
 			System.err.println("Peer exception: " + e.toString());
 			e.printStackTrace();
     }
+
+    // threadPool = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(250);
+    // threadPool.execute(mc);
   }
 
   private static boolean validArgs(String[] args) {
@@ -45,7 +50,20 @@ public class Peer implements RMI{
   }
 
   public void backup(String filepath, int replicationDegree){
-    System.out.println("BACKUP" + filepath + replicationDegree);
+    Data file = new Data(filepath, replicationDegree);
+
+    for(int i = 0; i < file.getChunks().size(); i++){
+      try{
+        Chunk chunk = file.getChunks().get(i);
+        String header = "PUTCHUNK " + version + " " + id + " " + file.getID() + " " + chunk.getNumber() + " " + replicationDegree + "\r\n\r\n";
+        System.out.println("Sent " + header.substring(0,header.length() - 4));
+        byte[] message = Utils.concatenate(header.getBytes("US-ASCII"), chunk.getBody());
+      }
+      catch (UnsupportedEncodingException e) {
+        System.err.println(e.toString());
+        e.printStackTrace();
+      }
+    }
   }
 
 

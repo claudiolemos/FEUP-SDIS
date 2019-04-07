@@ -35,8 +35,6 @@ public class Client {
       System.err.println("Client exception: " + e.toString());
       e.printStackTrace();
     }
-
-    Data data = new Data("Tux.svg",1);
   }
 
   private static boolean validArgs(String[] args) {

@@ -1,7 +1,7 @@
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class MC {
+public class MC implements Runnable {
 
   private InetAddress address;
 
@@ -9,9 +9,13 @@ public class MC {
     try{
       this.address = InetAddress.getByName(ip);
     } catch (UnknownHostException e) {
-      System.err.println("MC exception: " + e.toString());
+      System.err.println(e.toString());
       e.printStackTrace();
     }
+  }
+
+  public void run(){
+
   }
 
 }

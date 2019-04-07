@@ -35,9 +35,17 @@ public class Data implements Serializable{
       chunks.add(new Chunk(chunkNumber++, null, 0));
     }
     catch (IOException e) {
-      System.err.println("Client exception: " + e.toString());
+      System.err.println(e.toString());
       e.printStackTrace();
     }
+  }
+
+  public ArrayList<Chunk> getChunks(){
+    return chunks;
+  }
+
+  public String getID(){
+    return id;
   }
 
 }

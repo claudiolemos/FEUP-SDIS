@@ -9,6 +9,10 @@ public class Chunk{
     this.size = size;
   }
 
+	public int getNumber() {
+		return number;
+	}
+
 	public int getSize() {
 		return size;
 	}

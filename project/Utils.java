@@ -15,7 +15,16 @@ public final class Utils {
 
           return hexString.toString();
       } catch(Exception e){
-         throw new RuntimeException(e);
+          System.err.println(e.toString());
+          e.printStackTrace();
+          throw new RuntimeException(e);
       }
+  }
+
+  public static byte[] concatenate(byte[] first, byte[] second){
+     byte[] result = new byte[first.length + second.length];
+     System.arraycopy(first, 0, result, 0, first.length);
+     System.arraycopy(second, 0, result, first.length, second.length);
+     return result;
   }
 }
