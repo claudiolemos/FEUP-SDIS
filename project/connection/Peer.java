@@ -7,8 +7,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectInputStream;
+import java.io.IOException;
+import java.lang.ClassNotFoundException;
 
-import file.*;
+import database.*;
 import threads.*;
 import utils.Utils;
 
@@ -17,8 +24,9 @@ public class Peer implements RMI{
   private static double version;
   private static int id, mcPort, mdbPort, mdrPort;
   private static String accessPoint, mcIP, mdbIP, mdrIP;
-  private static Channel mc, mdb, mdr;
   private static ScheduledThreadPoolExecutor threads;
+  private static Channel mc, mdb, mdr;
+  private static Database database;
 
   public static void main(String[] args) {
     if(!validArgs(args))
@@ -40,13 +48,12 @@ public class Peer implements RMI{
 			e.printStackTrace();
     }
 
-    // load old storage
-
+    loadDatabase();
     execute(mc);
     execute(mdb);
     execute(mdr);
 
-    // Runtime.getRuntime().addShutdownHook(new Thread(Peer::save));
+    // Runtime.getRuntime().addShutdownHook(new Thread(Peer::saveDatabase));
   }
 
   private static boolean validArgs(String[] args) {
@@ -72,7 +79,7 @@ public class Peer implements RMI{
         String header = "PUTCHUNK " + version + " " + id + " " + file.getID() + " " + chunk.getNumber() + " " + replicationDegree + "\r\n\r\n";
         System.out.println("Sending " + header.substring(0,header.length() - 4));
         byte[] message = Utils.concatenate(header.getBytes("US-ASCII"), chunk.getBody());
-        SendMessage thread = new SendMessage(message, Utils.Channel.MDB);
+        Send thread = new Send(message, Utils.Channel.MDB);
         execute(thread);
         Thread.sleep(500);
         // threads.schedule(new ManagePutChunkThread(message, 1, file.getId(), chunk.getNr(), replicationDegree), 1, TimeUnit.SECONDS);
@@ -90,6 +97,46 @@ public class Peer implements RMI{
   public void reclaim(int reclaimSpace){System.out.println("RECLAIM" + reclaimSpace);}
   public void state(){System.out.println("STATE");}
 
+  public static void execute(Runnable thread){
+    threads.execute(thread);
+  }
+
+  private static void loadDatabase(){
+    try{
+      File file = new File("database/" + id + "/database.ser");
+      if(file.exists()){
+        FileInputStream fileStream = new FileInputStream("database/" + id + "/database.ser");
+        ObjectInputStream objectStream = new ObjectInputStream(fileStream);
+        database = (Database) objectStream.readObject();
+        objectStream.close();
+        fileStream.close();
+      }
+      else
+        database = new Database();
+    } catch (IOException | ClassNotFoundException e) {
+      System.err.println(e.toString());
+      e.printStackTrace();
+    }
+  }
+
+  private static void saveDatabase(){
+    try{
+      File file = new File("database/" + id + "/database.ser");
+      if(!file.exists()){
+        file.getParentFile().mkdirs();
+        file.createNewFile();
+      }
+      FileOutputStream fileStream = new FileOutputStream("database/" + id + "/database.ser");
+      ObjectOutputStream objectStream = new ObjectOutputStream(fileStream);
+      objectStream.writeObject(database);
+      objectStream.close();
+      fileStream.close();
+    } catch (IOException e) {
+      System.err.println(e.toString());
+      e.printStackTrace();
+    }
+  }
+
   public static Channel getChannel(Utils.Channel channel){
     switch (channel) {
       case MC:
@@ -103,7 +150,7 @@ public class Peer implements RMI{
     }
   }
 
-  public static void execute(Runnable thread){
-    threads.execute(thread);
+  public static int getID(){
+    return id;
   }
 }

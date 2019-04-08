@@ -4,6 +4,7 @@ import java.security.MessageDigest;
 
 public final class Utils {
   public enum Channel {MC, MDB, MDR}
+  public enum Protocol {PUTCHUNK, STORED, GETCHUNK, CHUNK, DELETE, REMOVED}
 
   public static String sha256(String base) {
       try{

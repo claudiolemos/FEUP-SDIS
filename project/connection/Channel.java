@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
-import threads.ReceiveMessage;
+import threads.Receive;
 
 public class Channel implements Runnable {
 
@@ -43,7 +43,7 @@ public class Channel implements Runnable {
       while(true){
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         socket.receive(packet);
-        connection.Peer.execute(new ReceiveMessage(Arrays.copyOf(buffer, packet.getLength())));
+        connection.Peer.execute(new Receive(Arrays.copyOf(buffer, packet.getLength())));
       }
     }catch (IOException e) {
       System.err.println(e.toString());
