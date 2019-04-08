@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
-import threads.Receive;
+import runnables.Receive;
 
 public class Channel implements Runnable {
 

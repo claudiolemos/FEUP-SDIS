@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.lang.ClassNotFoundException;
 
 import database.*;
-import threads.*;
+import runnables.*;
 import utils.Utils;
 
 public class Peer implements RMI{
@@ -152,5 +152,9 @@ public class Peer implements RMI{
 
   public static int getID(){
     return id;
+  }
+
+  public static Database getDatabase(){
+    return database;
   }
 }

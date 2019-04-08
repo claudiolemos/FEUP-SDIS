@@ -1,5 +1,9 @@
 package database;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 public class Chunk{
 
   private int number, size;
@@ -22,4 +26,19 @@ public class Chunk{
 	public byte[] getBody() {
 		return body;
 	}
+
+  public void save(String path){
+    try{
+      File file = new File(path);
+      if(!file.exists()){
+        file.getParentFile().mkdirs();
+        file.createNewFile();
+      }
+      FileOutputStream fileStream = new FileOutputStream(path);
+      fileStream.write(body);
+    } catch (IOException e) {
+      System.err.println(e.toString());
+      e.printStackTrace();
+    }
+  }
 }

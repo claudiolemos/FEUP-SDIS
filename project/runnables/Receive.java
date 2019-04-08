@@ -1,7 +1,8 @@
-package threads;
+package runnables;
 
 import java.util.Arrays;
 
+import database.Chunk;
 import utils.Utils;
 
 public class Receive implements Runnable {
@@ -23,18 +24,30 @@ public class Receive implements Runnable {
   }
 
   public void run() {
+    switch(action){
+      case "PUTCHUNK":
+        putchunk();
+        break;
+    }
+  }
+
+  private synchronized void putchunk(){
     if(connection.Peer.getID() != senderID){
-      System.out.println("action :" + action + ":");
-      System.out.println("version :" + version + ":");
-      System.out.println("senderID :" + senderID + ":");
-      System.out.println("fileID :" + fileID + ":");
-      System.out.println("chunkNumber :" + chunkNumber + ":");
-      System.out.println("replicationDegree :" + replicationDegree + ":");
+      if(connection.Peer.getDatabase().getAvailableSpace() >= body.length){
+        Chunk chunk = new Chunk(chunkNumber, body, body.length);
+
+        if(connection.Peer.getDatabase().getBackupChunks().containsKey(fileID + chunkNumber))
+          return;
+        else
+          connection.Peer.getDatabase().addBackupChunk(fileID + chunkNumber, chunk);
+
+        chunk.save("peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + chunkNumber);
+      }
     }
   }
 
   private void parseHeader(){
-    String[] array = (new String(header)).trim().split(" ");
+    String[] array = new String(header).trim().split(" ");
     action = array[0];
     version = Double.parseDouble(array[1]);
     senderID = Integer.parseInt(array[2]);
