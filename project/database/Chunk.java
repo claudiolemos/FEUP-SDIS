@@ -6,18 +6,48 @@ import java.io.IOException;
 
 public class Chunk{
 
+  private String fileID;
   private int number, size;
   private byte[] body;
 
-  public Chunk(int number, byte[] body, int size){
+  public Chunk(String fileID, int number, byte[] body, int size){
+    this.fileID = fileID;
     this.number = number;
     this.body = body;
     this.size = size;
   }
 
+  public void save(){
+    try{
+      File file = new File("peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + number);
+      if(!file.exists()){
+        file.getParentFile().mkdirs();
+        file.createNewFile();
+      }
+      FileOutputStream fileStream = new FileOutputStream("peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + number);
+      fileStream.write(body);
+    } catch (IOException e) {
+      System.err.println(e.toString());
+      e.printStackTrace();
+    }
+  }
+
+  public void delete(){
+    File file = new File("peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + number);
+    file.delete();
+  }
+
+  public String getFileID(){
+    return fileID;
+  }
+
 	public int getNumber() {
 		return number;
 	}
+
+  public String getID(){
+    return fileID + number;
+  }
 
 	public int getSize() {
 		return size;
@@ -26,19 +56,4 @@ public class Chunk{
 	public byte[] getBody() {
 		return body;
 	}
-
-  public void save(String path){
-    try{
-      File file = new File(path);
-      if(!file.exists()){
-        file.getParentFile().mkdirs();
-        file.createNewFile();
-      }
-      FileOutputStream fileStream = new FileOutputStream(path);
-      fileStream.write(body);
-    } catch (IOException e) {
-      System.err.println(e.toString());
-      e.printStackTrace();
-    }
-  }
 }

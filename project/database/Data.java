@@ -20,8 +20,8 @@ public class Data implements Serializable{
   public Data(String path, int replicationDegree){
     this.file = new File(path);
     this.replicationDegree = replicationDegree;
-    createChunks();
     this.id = Utils.sha256(this.file.getName() + ':' + this.file.lastModified() + ':' + this.file.getAbsoluteFile().getParent());
+    createChunks();
   }
 
   private void createChunks(){
@@ -33,10 +33,10 @@ public class Data implements Serializable{
 
     int size, chunkNumber = 1;
     while((size = bufferedStream.read(buffer)) != -1)
-      chunks.add(new Chunk(chunkNumber++, Arrays.copyOf(buffer, size), size));
+      chunks.add(new Chunk(id, chunkNumber++, Arrays.copyOf(buffer, size), size));
 
     if(file.length() % 64000 == 0)
-      chunks.add(new Chunk(chunkNumber++, null, 0));
+      chunks.add(new Chunk(id, chunkNumber++, null, 0));
     }
     catch (IOException e) {
       System.err.println(e.toString());
@@ -50,6 +50,10 @@ public class Data implements Serializable{
 
   public String getID(){
     return id;
+  }
+
+  public int getReplicationDegree(){
+    return replicationDegree;
   }
 
 }
