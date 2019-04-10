@@ -20,7 +20,7 @@ public class Data implements Serializable{
   public Data(String path, int replicationDegree){
     this.file = new File(path);
     this.replicationDegree = replicationDegree;
-    this.id = Utils.sha256(this.file.getName() + ':' + this.file.lastModified() + ':' + this.file.getAbsoluteFile().getParent());
+    this.id = Utils.sha256(this.file.getName() + ':' + this.file.lastModified() + ':' + connection.Peer.getID());
     createChunks();
   }
 

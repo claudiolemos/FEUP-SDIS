@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.Arrays;
 import java.io.File;
+import java.nio.file.Paths;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import java.io.ObjectOutputStream;
@@ -99,22 +100,57 @@ public class Peer implements RMI{
     }
   }
 
-  public void delete(String filepath){
-    Data file = new Data(filepath, 0);
+  public synchronized void delete(String filepath){
     if(database.hasFile(filepath)){
-      for(int i = 0; i < 5; i++){
-        String header = "DELETE " + version + " " + id + " " + file.getID() + "\r\n\r\n";
-        System.out.println("Sending " + header.substring(0,header.length() - 4));
-        execute(new Send(header.getBytes(), Utils.Channel.MC));
+      String header = "DELETE " + version + " " + id + " " + database.getFile(filepath).getID() + "\r\n\r\n";
+      System.out.println("Sending " + header.substring(0,header.length() - 4));
+      execute(new Send(header.getBytes(), Utils.Channel.MC));
+    }
+  }
+
+  public synchronized void restore(String filepath){
+    if(database.hasFile(filepath)){
+      for(int i = 0; i < database.getFile(filepath).getChunks().size(); i++){
+        try{
+          database.addWantedChunk(Utils.getChunkID(database.getFile(filepath).getID(),database.getFile(filepath).getChunks().get(i).getNumber()),false);
+          String header = "GETCHUNK " + version + " " + id + " " + database.getFile(filepath).getID() + " " + database.getFile(filepath).getChunks().get(i).getNumber() + "\r\n\r\n";
+          System.out.println("Sending " + header.substring(0,header.length() - 4));
+
+          int counter = 1, timer = 1000;
+
+          do {
+            System.out.println("GETCHUNK Try #" + counter);
+            execute(new Send(header.getBytes(), Utils.Channel.MC));
+            Thread.sleep(timer);
+            timer *= 2;
+            counter++;
+          } while (!database.hasWantedChunk(Utils.getChunkID(database.getFile(filepath).getID(),database.getFile(filepath).getChunks().get(i).getNumber())) && counter < 6);
+        }catch (InterruptedException e) {
+          System.err.println(e.toString());
+          e.printStackTrace();
+        }
+      }
+
+      try{
+        File file = new File("storage/peer" + getID() + "/restored/" + Paths.get(filepath).getFileName().toString());
+        if(!file.exists()){
+          file.getParentFile().mkdirs();
+          file.createNewFile();
+        }
+        FileOutputStream fileStream = new FileOutputStream("storage/peer" + getID() + "/restored/" + Paths.get(filepath).getFileName().toString());
+
+        for(int i = 0; i < database.getFile(filepath).getChunks().size(); i++)
+            fileStream.write(database.getRestoredChunks().get(Utils.getChunkID(database.getFile(filepath).getID(),database.getFile(filepath).getChunks().get(i).getNumber())).getBody());
+      } catch (IOException e) {
+        System.err.println(e.toString());
+        e.printStackTrace();
       }
     }
   }
 
-  public void restore(String filepath){}
+  public synchronized void reclaim(int reclaimSpace){}
 
-  public void reclaim(int reclaimSpace){}
-
-  public void state(){
+  public synchronized void state(){
     System.out.println("Peer " + id + " state:");
     printFilesInfo();
     printBackupChunksInfo();

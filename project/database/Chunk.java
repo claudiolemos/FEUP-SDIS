@@ -19,12 +19,12 @@ public class Chunk{
 
   public void save(){
     try{
-      File file = new File("peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + number);
+      File file = new File("storage/peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + number);
       if(!file.exists()){
         file.getParentFile().mkdirs();
         file.createNewFile();
       }
-      FileOutputStream fileStream = new FileOutputStream("peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + number);
+      FileOutputStream fileStream = new FileOutputStream("storage/peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + number);
       fileStream.write(body);
     } catch (IOException e) {
       System.err.println(e.toString());
@@ -33,7 +33,7 @@ public class Chunk{
   }
 
   public void delete(){
-    File file = new File("peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + number);
+    File file = new File("storage/peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + number);
     file.delete();
   }
 

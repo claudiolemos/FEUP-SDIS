@@ -31,4 +31,8 @@ public final class Utils {
      System.arraycopy(second, 0, result, first.length, second.length);
      return result;
   }
+
+  public static String getChunkID(String fileID, int number){
+    return fileID + number;
+  }
 }
