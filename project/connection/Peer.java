@@ -15,6 +15,7 @@ import java.io.ObjectInputStream;
 import java.io.IOException;
 import java.lang.ClassNotFoundException;
 import java.util.Map;
+import java.util.Iterator;
 
 import database.*;
 import runnables.*;
@@ -103,6 +104,7 @@ public class Peer implements RMI{
   public synchronized void delete(String filepath){
     if(database.hasFile(filepath)){
       String header = "DELETE " + version + " " + id + " " + database.getFile(filepath).getID() + "\r\n\r\n";
+      database.deleteFile(filepath);
       System.out.println("Sending " + header.substring(0,header.length() - 4));
       execute(new Send(header.getBytes(), Utils.Channel.MC));
     }
@@ -148,7 +150,34 @@ public class Peer implements RMI{
     }
   }
 
-  public synchronized void reclaim(int reclaimSpace){}
+  public synchronized void reclaim(int reclaimSpace){
+    database.setAvailableSpace(reclaimSpace*1000 - database.getUsedSpace());
+
+    if(database.getAvailableSpace() > 0)
+      System.out.println("Peer " + id + " can now store up to " + database.getSpace()/1000 + "kb");
+    else if(database.getAvailableSpace() == 0)
+      System.out.println("Peer " + id + " is at full capacity");
+    else {
+      for(Iterator<Map.Entry<String, Chunk>> iterator = database.getBackupChunks().entrySet().iterator(); iterator.hasNext();){
+        if(database.getAvailableSpace() < 0){
+          Map.Entry<String, Chunk> entry = iterator.next();
+          String chunkID = entry.getKey();
+          Chunk chunk = entry.getValue();
+          iterator.remove();
+          database.addAvailableSpace(chunk.getSize());
+          database.removeUsedSpace(chunk.getSize());
+          database.decreaseReplicationDegree(chunkID);
+          String header = "REMOVED " + version + " " + id + " " + chunk.getFileID() + " " + chunk.getNumber() + "\r\n\r\n";
+          System.out.println("Sending " + header.substring(0,header.length() - 4));
+          execute(new Send(header.getBytes(), Utils.Channel.MC));
+        }
+        else
+          break;
+      }
+
+
+    }
+  }
 
   public synchronized void state(){
     System.out.println("Peer " + id + " state:");
@@ -160,10 +189,9 @@ public class Peer implements RMI{
   public void printFilesInfo(){
     System.out.println("  Files");
     for (Map.Entry<String, Data> entry : database.getFiles().entrySet()) {
-      String filepath = entry.getKey();
       Data file = entry.getValue();
       System.out.println("    File");
-      System.out.println("      Filepath: " + filepath);
+      System.out.println("      Filepath: " + file.getPath());
       System.out.println("      ID: " + file.getID());
       System.out.println("      Desired Replication Degree: " + file.getReplicationDegree());
       System.out.println("      Chunks");

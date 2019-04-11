@@ -46,6 +46,9 @@ public class Receive implements Runnable {
       case "CHUNK":
         chunk();
         break;
+      case "REMOVED":
+        removed();
+        break;
     }
   }
 
@@ -112,6 +115,10 @@ public class Receive implements Runnable {
       else
         connection.Peer.getDatabase().addSentChunk(Utils.getChunkID(fileID, chunkNumber), true);
     }
+  }
+
+  private synchronized void removed(){
+    
   }
 
   private void parseHeader(){

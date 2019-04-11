@@ -52,6 +52,10 @@ public class Data implements Serializable{
     return id;
   }
 
+  public String getPath(){
+    return file.getPath();
+  }
+
   public int getReplicationDegree(){
     return replicationDegree;
   }

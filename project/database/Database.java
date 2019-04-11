@@ -7,6 +7,8 @@ import java.io.File;
 import java.util.Map;
 import java.util.Iterator;
 
+import utils.Utils;
+
 public class Database implements Serializable{
 
   private int availableSpace, usedSpace;
@@ -29,12 +31,17 @@ public class Database implements Serializable{
   }
 
   public void addFile(String filepath, Data file){
-    if(!files.containsKey(filepath))
-      files.put(filepath, file);
+    if(!files.containsKey(Utils.getFileID(filepath)))
+      files.put(Utils.getFileID(filepath), file);
+  }
+
+  public void deleteFile(String filepath){
+    if(files.containsKey(Utils.getFileID(filepath)))
+      files.remove(Utils.getFileID(filepath));
   }
 
   public boolean hasFile(String filepath){
-    return files.containsKey(filepath);
+    return files.containsKey(Utils.getFileID(filepath));
   }
 
   public boolean hasChunk(String id){
@@ -82,6 +89,11 @@ public class Database implements Serializable{
       replicationDegrees.put(id, replicationDegrees.get(id)+1);
   }
 
+  public void decreaseReplicationDegree(String id){
+    if(replicationDegrees.containsKey(id))
+      replicationDegrees.put(id, replicationDegrees.get(id)-1);
+  }
+
   public int getReplicationDegree(String id){
     return replicationDegrees.get(id);
   }
@@ -106,7 +118,7 @@ public class Database implements Serializable{
   }
 
   public Data getFile(String filepath){
-    return files.get(filepath);
+    return files.get(Utils.getFileID(filepath));
   }
 
   public void deleteChunks(String fileID){
@@ -117,6 +129,7 @@ public class Database implements Serializable{
         chunk.delete();
         replicationDegrees.remove(chunk.getID());
         availableSpace += chunk.getSize();
+        usedSpace -= chunk.getSize();
         iterator.remove();
       }
     }
@@ -126,7 +139,24 @@ public class Database implements Serializable{
     return availableSpace;
   }
 
+  public void setAvailableSpace(int availableSpace){
+    this.availableSpace = availableSpace;
+  }
+
+  public void addAvailableSpace(int availableSpace){
+    this.availableSpace += availableSpace;
+  }
+
+  public void removeUsedSpace(int usedSpace){
+    this.usedSpace -= usedSpace;
+  }
+
   public int getUsedSpace(){
     return usedSpace;
   }
+
+  public int getSpace(){
+    return usedSpace + availableSpace;
+  }
+
 }

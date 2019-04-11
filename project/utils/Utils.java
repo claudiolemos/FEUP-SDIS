@@ -1,6 +1,8 @@
 package utils;
 
 import java.security.MessageDigest;
+import java.io.File;
+
 
 public final class Utils {
   public enum Channel {MC, MDB, MDR}
@@ -34,5 +36,10 @@ public final class Utils {
 
   public static String getChunkID(String fileID, int number){
     return fileID + number;
+  }
+
+  public static String getFileID(String filepath){
+    File file = new File(filepath);
+    return Utils.sha256(file.getName() + ':' + file.lastModified() + ':' + connection.Peer.getID());
   }
 }
