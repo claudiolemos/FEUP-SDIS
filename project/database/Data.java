@@ -33,10 +33,10 @@ public class Data implements Serializable{
 
     int size, chunkNumber = 1;
     while((size = bufferedStream.read(buffer)) != -1)
-      chunks.add(new Chunk(id, chunkNumber++, Arrays.copyOf(buffer, size), size));
+      chunks.add(new Chunk(id, chunkNumber++, Arrays.copyOf(buffer, size), size, replicationDegree));
 
     if(file.length() % 64000 == 0)
-      chunks.add(new Chunk(id, chunkNumber++, null, 0));
+      chunks.add(new Chunk(id, chunkNumber++, null, 0, replicationDegree));
     }
     catch (IOException e) {
       System.err.println(e.toString());

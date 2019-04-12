@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.lang.ClassNotFoundException;
 import java.util.Map;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 import database.*;
 import runnables.*;
@@ -222,6 +223,10 @@ public class Peer implements RMI{
 
   public static void execute(Runnable thread){
     threads.execute(thread);
+  }
+
+  public static void schedule(Runnable thread, int time){
+    threads.schedule(thread, time, TimeUnit.MILLISECONDS);
   }
 
   private static void loadDatabase(){

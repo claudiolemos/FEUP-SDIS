@@ -53,26 +53,21 @@ public class Receive implements Runnable {
   }
 
   private synchronized void putchunk(){
-    try{
-      Thread.sleep(ThreadLocalRandom.current().nextInt(0, 401));
-      if(connection.Peer.getID() != senderID){
-        if(connection.Peer.getDatabase().getAvailableSpace() >= body.length){
-          Chunk chunk = new Chunk(fileID, chunkNumber, body, body.length);
+    if(connection.Peer.getID() != senderID){
+      Chunk chunk = new Chunk(fileID, chunkNumber, body, body.length, replicationDegree);
 
-          if(connection.Peer.getDatabase().getBackupChunks().containsKey(chunk.getID()))
-            return;
-          else
-            connection.Peer.getDatabase().addBackupChunk(chunk.getID(), chunk);
-
-          String header = "STORED " + version + " " + connection.Peer.getID() + " " + fileID + " " + chunkNumber + "\r\n\r\n";
-          System.out.println("Sending " + header.substring(0,header.length() - 4));
-          connection.Peer.execute(new Send(header.getBytes(), Utils.Channel.MC));
-          chunk.save();
-        }
+      if(connection.Peer.getDatabase().getBackupChunks().containsKey(chunk.getID())){
+        connection.Peer.getDatabase().addReceivedChunk(chunk.getID(), true);
+        return;
       }
-    } catch (InterruptedException e) {
-      System.err.println(e.toString());
-      e.printStackTrace();
+
+      if(connection.Peer.getDatabase().getAvailableSpace() >= body.length){
+        connection.Peer.getDatabase().addBackupChunk(chunk.getID(), chunk);
+        String header = "STORED " + version + " " + connection.Peer.getID() + " " + fileID + " " + chunkNumber + "\r\n\r\n";
+        System.out.println("Sending " + header.substring(0,header.length() - 4));
+        connection.Peer.schedule(new Send(header.getBytes(), Utils.Channel.MC), ThreadLocalRandom.current().nextInt(0, 401));
+        chunk.save();
+      }
     }
   }
 
@@ -89,7 +84,6 @@ public class Receive implements Runnable {
   private synchronized void getchunk(){
     try{
       Thread.sleep(ThreadLocalRandom.current().nextInt(0, 401));
-
       if(connection.Peer.getID() != senderID && connection.Peer.getDatabase().hasChunk(Utils.getChunkID(fileID, chunkNumber)) && !connection.Peer.getDatabase().hasSentChunk(Utils.getChunkID(fileID, chunkNumber))){
         connection.Peer.getDatabase().addSentChunk(Utils.getChunkID(fileID, chunkNumber), true);
         File file = new File("storage/peer" + connection.Peer.getID() + "/backup/" + fileID + "/" + chunkNumber);
@@ -118,7 +112,21 @@ public class Receive implements Runnable {
   }
 
   private synchronized void removed(){
-    
+    try{
+      if(connection.Peer.getID() != senderID){
+        connection.Peer.getDatabase().decreaseReplicationDegree(Utils.getChunkID(fileID, chunkNumber));
+        Thread.sleep(ThreadLocalRandom.current().nextInt(0, 401));
+        if(connection.Peer.getDatabase().hasChunk(Utils.getChunkID(fileID, chunkNumber)) && !connection.Peer.getDatabase().hasReceivedChunk(Utils.getChunkID(fileID, chunkNumber)) && connection.Peer.getDatabase().getReplicationDegree(Utils.getChunkID(fileID, chunkNumber)) < connection.Peer.getDatabase().getBackupChunks().get(Utils.getChunkID(fileID, chunkNumber)).getReplicationDegree()){
+          String header = "PUTCHUNK " + version + " " + connection.Peer.getID() + " " + fileID + " " + chunkNumber + " " + replicationDegree + "\r\n\r\n";
+          System.out.println("Sending " + header.substring(0,header.length() - 4));
+          byte[] message = Utils.concatenate(header.getBytes(), connection.Peer.getDatabase().getBackupChunks().get(Utils.getChunkID(fileID, chunkNumber)).getBody());
+          connection.Peer.execute(new Send(message, Utils.Channel.MDB));
+        }
+      }
+    } catch (InterruptedException e) {
+      System.err.println(e.toString());
+      e.printStackTrace();
+    }
   }
 
   private void parseHeader(){

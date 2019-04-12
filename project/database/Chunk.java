@@ -7,7 +7,7 @@ import java.io.IOException;
 public class Chunk{
 
   private String fileID;
-  private int number, size;
+  private int number, size, replicationDegree;
   private byte[] body;
 
   public Chunk(String fileID, int number, byte[] body, int size){
@@ -15,6 +15,11 @@ public class Chunk{
     this.number = number;
     this.body = body;
     this.size = size;
+  }
+
+  public Chunk(String fileID, int number, byte[] body, int size, int replicationDegree){
+    this(fileID, number, body, size);
+    this.replicationDegree = replicationDegree;
   }
 
   public void save(){
@@ -51,6 +56,10 @@ public class Chunk{
 
 	public int getSize() {
 		return size;
+	}
+
+	public int getReplicationDegree() {
+		return replicationDegree;
 	}
 
 	public byte[] getBody() {

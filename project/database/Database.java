@@ -17,6 +17,7 @@ public class Database implements Serializable{
   private ConcurrentHashMap<String, Integer> replicationDegrees;
   private ConcurrentHashMap<String, Chunk> restored;
   private ConcurrentHashMap<String, Boolean> sentChunks;
+  private ConcurrentHashMap<String, Boolean> receivedChunks;
   private ConcurrentHashMap<String, Boolean> wantedChunks;
 
   public Database(int availableSpace){
@@ -27,6 +28,7 @@ public class Database implements Serializable{
     this.replicationDegrees = new ConcurrentHashMap<>();
     this.restored = new ConcurrentHashMap<>();
     this.sentChunks = new ConcurrentHashMap<>();
+    this.receivedChunks = new ConcurrentHashMap<>();
     this.wantedChunks = new ConcurrentHashMap<>();
   }
 
@@ -54,11 +56,15 @@ public class Database implements Serializable{
   }
 
   public void addSentChunk(String id, Boolean bool){
-      sentChunks.put(id, bool);
+    sentChunks.put(id, bool);
   }
 
   public void addWantedChunk(String id, Boolean bool){
-      wantedChunks.put(id, bool);
+    wantedChunks.put(id, bool);
+  }
+
+  public void addReceivedChunk(String id, Boolean bool){
+    receivedChunks.put(id, bool);
   }
 
   public boolean hasSentChunk(String id){
@@ -66,6 +72,13 @@ public class Database implements Serializable{
       return false;
     else
       return sentChunks.get(id);
+  }
+
+  public boolean hasReceivedChunk(String id){
+    if(!receivedChunks.containsKey(id))
+      return false;
+    else
+      return receivedChunks.get(id);
   }
 
   public boolean needsWantedChunk(String id){
