@@ -108,7 +108,10 @@ public class Database implements Serializable{
   }
 
   public int getReplicationDegree(String id){
-    return replicationDegrees.get(id);
+    if(replicationDegrees.containsKey(id))
+      return replicationDegrees.get(id);
+    else
+      return 0;
   }
 
   public void addBackupChunk(String id, Chunk chunk){
@@ -116,6 +119,13 @@ public class Database implements Serializable{
     increaseReplicationDegree(id);
     availableSpace -= chunk.getSize();
     usedSpace += chunk.getSize();
+  }
+
+  public void removeBackupChunk(String id, Chunk chunk){
+    backup.remove(id);
+    decreaseReplicationDegree(id);
+    availableSpace += chunk.getSize();
+    usedSpace -= chunk.getSize();
   }
 
   public ConcurrentHashMap<String, Chunk> getBackupChunks(){

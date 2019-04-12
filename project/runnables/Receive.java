@@ -54,19 +54,29 @@ public class Receive implements Runnable {
 
   private synchronized void putchunk(){
     if(connection.Peer.getID() != senderID){
-      Chunk chunk = new Chunk(fileID, chunkNumber, body, body.length, replicationDegree);
+      try{
+        Chunk chunk = new Chunk(fileID, chunkNumber, body, body.length, replicationDegree);
 
-      if(connection.Peer.getDatabase().getBackupChunks().containsKey(chunk.getID())){
-        connection.Peer.getDatabase().addReceivedChunk(chunk.getID(), true);
-        return;
-      }
+        if(connection.Peer.getDatabase().getBackupChunks().containsKey(chunk.getID())){
+          connection.Peer.getDatabase().addReceivedChunk(chunk.getID(), true);
+          return;
+        }
 
-      if(connection.Peer.getDatabase().getAvailableSpace() >= body.length){
-        connection.Peer.getDatabase().addBackupChunk(chunk.getID(), chunk);
-        String header = "STORED " + version + " " + connection.Peer.getID() + " " + fileID + " " + chunkNumber + "\r\n\r\n";
-        System.out.println("Sending " + header.substring(0,header.length() - 4));
-        connection.Peer.schedule(new Send(header.getBytes(), Utils.Channel.MC), ThreadLocalRandom.current().nextInt(0, 401));
-        chunk.save();
+        Thread.sleep(ThreadLocalRandom.current().nextInt(0, 401));
+
+        if(version == 2.0 && connection.Peer.getDatabase().getReplicationDegree(Utils.getChunkID(fileID, chunkNumber)) >= chunk.getReplicationDegree())
+          return;
+
+        if(connection.Peer.getDatabase().getAvailableSpace() >= body.length){
+          connection.Peer.getDatabase().addBackupChunk(chunk.getID(), chunk);
+          String header = "STORED " + version + " " + connection.Peer.getID() + " " + fileID + " " + chunkNumber + "\r\n\r\n";
+          System.out.println("Sending " + header.substring(0,header.length() - 4));
+          connection.Peer.execute(new Send(header.getBytes(), Utils.Channel.MC));
+          chunk.save();
+        }
+      }catch (InterruptedException e) {
+        System.err.println(e.toString());
+        e.printStackTrace();
       }
     }
   }

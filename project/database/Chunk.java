@@ -1,10 +1,11 @@
 package database;
 
+import java.io.Serializable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-public class Chunk{
+public class Chunk  implements Serializable{
 
   private String fileID;
   private int number, size, replicationDegree;

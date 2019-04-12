@@ -17,6 +17,7 @@ import java.lang.ClassNotFoundException;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
 
 import database.*;
 import runnables.*;
@@ -56,7 +57,7 @@ public class Peer implements RMI{
     execute(mdb);
     execute(mdr);
 
-    // Runtime.getRuntime().addShutdownHook(new Thread(Peer::saveDatabase));
+    Runtime.getRuntime().addShutdownHook(new Thread(Peer::saveDatabase));
   }
 
   private static boolean validArgs(String[] args) {
@@ -113,28 +114,23 @@ public class Peer implements RMI{
 
   public synchronized void restore(String filepath){
     if(database.hasFile(filepath)){
-      for(int i = 0; i < database.getFile(filepath).getChunks().size(); i++){
-        try{
-          database.addWantedChunk(Utils.getChunkID(database.getFile(filepath).getID(),database.getFile(filepath).getChunks().get(i).getNumber()),false);
-          String header = "GETCHUNK " + version + " " + id + " " + database.getFile(filepath).getID() + " " + database.getFile(filepath).getChunks().get(i).getNumber() + "\r\n\r\n";
-          System.out.println("Sending " + header.substring(0,header.length() - 4));
-
-          int counter = 1, timer = 1000;
-
-          do {
-            System.out.println("GETCHUNK Try #" + counter);
-            execute(new Send(header.getBytes(), Utils.Channel.MC));
-            Thread.sleep(timer);
-            timer *= 2;
-            counter++;
-          } while (!database.hasWantedChunk(Utils.getChunkID(database.getFile(filepath).getID(),database.getFile(filepath).getChunks().get(i).getNumber())) && counter < 6);
-        }catch (InterruptedException e) {
-          System.err.println(e.toString());
-          e.printStackTrace();
-        }
-      }
-
       try{
+        for(int i = 0; i < database.getFile(filepath).getChunks().size(); i++){
+            database.addWantedChunk(Utils.getChunkID(database.getFile(filepath).getID(),database.getFile(filepath).getChunks().get(i).getNumber()),false);
+            String header = "GETCHUNK " + version + " " + id + " " + database.getFile(filepath).getID() + " " + database.getFile(filepath).getChunks().get(i).getNumber() + "\r\n\r\n";
+            System.out.println("Sending " + header.substring(0,header.length() - 4));
+
+            int counter = 1, timer = 1000;
+
+            do {
+              System.out.println("GETCHUNK Try #" + counter);
+              execute(new Send(header.getBytes(), Utils.Channel.MC));
+              Thread.sleep(timer);
+              timer *= 2;
+              counter++;
+            } while (!database.hasWantedChunk(Utils.getChunkID(database.getFile(filepath).getID(),database.getFile(filepath).getChunks().get(i).getNumber())) && counter < 6);
+        }
+
         File file = new File("storage/peer" + getID() + "/restored/" + Paths.get(filepath).getFileName().toString());
         if(!file.exists()){
           file.getParentFile().mkdirs();
@@ -144,7 +140,7 @@ public class Peer implements RMI{
 
         for(int i = 0; i < database.getFile(filepath).getChunks().size(); i++)
             fileStream.write(database.getRestoredChunks().get(Utils.getChunkID(database.getFile(filepath).getID(),database.getFile(filepath).getChunks().get(i).getNumber())).getBody());
-      } catch (IOException e) {
+      } catch (InterruptedException | IOException e) {
         System.err.println(e.toString());
         e.printStackTrace();
       }
@@ -159,24 +155,34 @@ public class Peer implements RMI{
     else if(database.getAvailableSpace() == 0)
       System.out.println("Peer " + id + " is at full capacity");
     else {
+      ArrayList<Chunk> priorityChunks = new ArrayList<>();
+      ArrayList<Chunk> otherChunks = new ArrayList<>();
+
       for(Iterator<Map.Entry<String, Chunk>> iterator = database.getBackupChunks().entrySet().iterator(); iterator.hasNext();){
-        if(database.getAvailableSpace() < 0){
-          Map.Entry<String, Chunk> entry = iterator.next();
-          String chunkID = entry.getKey();
-          Chunk chunk = entry.getValue();
-          iterator.remove();
-          database.addAvailableSpace(chunk.getSize());
-          database.removeUsedSpace(chunk.getSize());
-          database.decreaseReplicationDegree(chunkID);
-          String header = "REMOVED " + version + " " + id + " " + chunk.getFileID() + " " + chunk.getNumber() + "\r\n\r\n";
-          System.out.println("Sending " + header.substring(0,header.length() - 4));
-          execute(new Send(header.getBytes(), Utils.Channel.MC));
-        }
+        Map.Entry<String, Chunk> entry = iterator.next();
+        String chunkID = entry.getKey();
+        Chunk chunk = entry.getValue();
+        if(database.getReplicationDegree(chunkID) > chunk.getReplicationDegree())
+          priorityChunks.add(chunk);
         else
-          break;
+          otherChunks.add(chunk);
       }
 
+      reclaimAux(priorityChunks);
+      reclaimAux(otherChunks);
+    }
+  }
 
+  private synchronized void reclaimAux(ArrayList<Chunk> chunks){
+    for(int i = 0; i < chunks.size(); i++){
+      if(database.getAvailableSpace() < 0){
+        database.removeBackupChunk(chunks.get(i).getID(), chunks.get(i));
+        String header = "REMOVED " + version + " " + id + " " + chunks.get(i).getFileID() + " " + chunks.get(i).getNumber() + "\r\n\r\n";
+        System.out.println("Sending " + header.substring(0,header.length() - 4));
+        execute(new Send(header.getBytes(), Utils.Channel.MC));
+      }
+      else
+        break;
     }
   }
 
@@ -231,9 +237,9 @@ public class Peer implements RMI{
 
   private static void loadDatabase(){
     try{
-      File file = new File("database/" + id + "/database.ser");
+      File file = new File("storage/peer" + id + "/database.ser");
       if(file.exists()){
-        FileInputStream fileStream = new FileInputStream("database/" + id + "/database.ser");
+        FileInputStream fileStream = new FileInputStream("storage/peer" + id + "/database.ser");
         ObjectInputStream objectStream = new ObjectInputStream(fileStream);
         database = (Database) objectStream.readObject();
         objectStream.close();
@@ -249,12 +255,12 @@ public class Peer implements RMI{
 
   private static void saveDatabase(){
     try{
-      File file = new File("database/" + id + "/database.ser");
+      File file = new File("storage/peer" + id + "/database.ser");
       if(!file.exists()){
         file.getParentFile().mkdirs();
         file.createNewFile();
       }
-      FileOutputStream fileStream = new FileOutputStream("database/" + id + "/database.ser");
+      FileOutputStream fileStream = new FileOutputStream("storage/peer" + id + "/database.ser");
       ObjectOutputStream objectStream = new ObjectOutputStream(fileStream);
       objectStream.writeObject(database);
       objectStream.close();
