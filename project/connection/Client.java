@@ -3,11 +3,36 @@ package connection;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 
+/**
+ * Class that represents the client that sends the messages to the peers
+ */
 public class Client {
 
-  private static int replicationDegree, reclaimSpace;
-  private static String filepath, host, peer;
+  /**
+   * desired replication degree for the chunk
+   */
+  private static int replicationDegree;
+  /**
+   * new storage size in kb for the peer
+   */
+  private static int reclaimSpace;
+  /**
+   * path to the file that is going to be backedup, restored or deleted
+   */
+  private static String filepath;
+  /**
+   * host segment on the IP
+   */
+  private static String host;
+  /**
+   * peer's id segment on the IP
+   */
+  private static String peer;
 
+  /**
+   * Main client function
+   * @param args the arguments received from the terminal
+   */
   public static void main(String[] args) {
     if(!validArgs(args))
       return;
@@ -39,6 +64,11 @@ public class Client {
     }
   }
 
+  /**
+   * checks if valids passed to the client are valid
+   * @param  args the arguments received from the terminal
+   * @return boolean on wether the args are valid or not
+   */
   private static boolean validArgs(String[] args) {
     if(args.length < 2) return false;
 

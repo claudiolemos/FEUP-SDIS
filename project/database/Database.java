@@ -145,10 +145,13 @@ public class Database implements Serializable{
   }
 
   public void deleteChunks(String fileID){
+    boolean deleted = false;
+
     for(Iterator<Map.Entry<String, Chunk>> iterator = backup.entrySet().iterator(); iterator.hasNext();) {
       Map.Entry<String, Chunk> entry = iterator.next();
       Chunk chunk = entry.getValue();
       if(chunk.getFileID().equals(fileID)) {
+        deleted = true;
         chunk.delete();
         replicationDegrees.remove(chunk.getID());
         availableSpace += chunk.getSize();
@@ -156,6 +159,8 @@ public class Database implements Serializable{
         iterator.remove();
       }
     }
+
+    if(deleted) System.out.println("File " + fileID + " was deleted from database.\n");
   }
 
   public int getAvailableSpace(){

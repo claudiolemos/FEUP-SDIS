@@ -59,21 +59,26 @@ public class Receive implements Runnable {
 
         if(connection.Peer.getDatabase().getBackupChunks().containsKey(chunk.getID())){
           connection.Peer.getDatabase().addReceivedChunk(chunk.getID(), true);
+          System.out.println("Chunk " + chunk.getID() + " has already been stored.\n");
           return;
         }
 
         Thread.sleep(ThreadLocalRandom.current().nextInt(0, 401));
 
-        if(version == 2.0 && connection.Peer.getDatabase().getReplicationDegree(Utils.getChunkID(fileID, chunkNumber)) >= chunk.getReplicationDegree())
+        if(version == 2.0 && connection.Peer.getDatabase().getReplicationDegree(Utils.getChunkID(fileID, chunkNumber)) >= chunk.getReplicationDegree()){
+          System.out.println("Chunk " + chunk.getID() + " is already at its desired replication degree, so it's not going to be stored.\n");
           return;
+        }
 
         if(connection.Peer.getDatabase().getAvailableSpace() >= body.length){
           connection.Peer.getDatabase().addBackupChunk(chunk.getID(), chunk);
           String header = "STORED " + version + " " + connection.Peer.getID() + " " + fileID + " " + chunkNumber + "\r\n\r\n";
-          System.out.println("Sending " + header.substring(0,header.length() - 4));
+          System.out.println("Sending " + header.substring(0,header.length() - 4) + "\n");
           connection.Peer.execute(new Send(header.getBytes(), Utils.Channel.MC));
           chunk.save();
         }
+        else
+          System.out.println("Unable to store chunk " + chunk.getID() + ". Full capacity reached.\n");
       }catch (InterruptedException e) {
         System.err.println(e.toString());
         e.printStackTrace();
@@ -102,7 +107,7 @@ public class Receive implements Runnable {
         BufferedInputStream bufferedStream = new BufferedInputStream(fileStream);
         int size = bufferedStream.read(buffer);
         String header = "CHUNK " + version + " " + connection.Peer.getID() + " " + fileID + " " + chunkNumber + "\r\n\r\n";
-        System.out.println("Sending " + header.substring(0,header.length() - 4));
+        System.out.println("Sending " + header.substring(0,header.length() - 4) + "\n");
         byte[] message = Utils.concatenate(header.getBytes(), Arrays.copyOf(buffer, size));
         connection.Peer.execute(new Send(message, Utils.Channel.MDR));
       }
@@ -128,7 +133,7 @@ public class Receive implements Runnable {
         Thread.sleep(ThreadLocalRandom.current().nextInt(0, 401));
         if(connection.Peer.getDatabase().hasChunk(Utils.getChunkID(fileID, chunkNumber)) && !connection.Peer.getDatabase().hasReceivedChunk(Utils.getChunkID(fileID, chunkNumber)) && connection.Peer.getDatabase().getReplicationDegree(Utils.getChunkID(fileID, chunkNumber)) < connection.Peer.getDatabase().getBackupChunks().get(Utils.getChunkID(fileID, chunkNumber)).getReplicationDegree()){
           String header = "PUTCHUNK " + version + " " + connection.Peer.getID() + " " + fileID + " " + chunkNumber + " " + replicationDegree + "\r\n\r\n";
-          System.out.println("Sending " + header.substring(0,header.length() - 4));
+          System.out.println("Sending " + header.substring(0,header.length() - 4) + "\n");
           byte[] message = Utils.concatenate(header.getBytes(), connection.Peer.getDatabase().getBackupChunks().get(Utils.getChunkID(fileID, chunkNumber)).getBody());
           connection.Peer.execute(new Send(message, Utils.Channel.MDB));
         }
