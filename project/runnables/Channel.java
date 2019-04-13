@@ -10,11 +10,25 @@ import java.net.UnknownHostException;
 
 import runnables.Receive;
 
+/**
+ * class used to represent a multicast channel thread
+ */
 public class Channel implements Runnable {
 
+  /**
+   * ip address of peer's host
+   */
   private InetAddress address;
+  /**
+   * port through which the channel will be connected
+   */
   private int port;
 
+  /**
+   * Channel constructor
+   * @param ip   ip used to connect to the multicast
+   * @param port port used to connect to the multicast
+   */
   public Channel(String ip, int port){
     this.port = port;
     try{
@@ -25,6 +39,10 @@ public class Channel implements Runnable {
     }
   }
 
+  /**
+   * sends a message to the multicast channel
+   * @param message content of the message being sent
+   */
   public void send(byte[] message){
     try(DatagramSocket socket = new DatagramSocket()){
       DatagramPacket packet = new DatagramPacket(message, message.length, address, port);
@@ -35,6 +53,9 @@ public class Channel implements Runnable {
     }
   }
 
+  /**
+   * loop used for the channel thread, initiating a Receive thread when a new message is received
+   */
   public void run(){
     byte[] buffer = new byte[64512];
     try{
@@ -50,5 +71,4 @@ public class Channel implements Runnable {
       e.printStackTrace();
     }
   }
-
 }

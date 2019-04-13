@@ -4,7 +4,7 @@ import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 
 /**
- * Class that represents the client that sends the messages to the peers
+ * class that represents the client that sends the messages to the peers
  */
 public class Client {
 
@@ -67,7 +67,7 @@ public class Client {
   /**
    * checks if valids passed to the client are valid
    * @param  args the arguments received from the terminal
-   * @return boolean on wether the args are valid or not
+   * @return boolean on wether or not the args are valid
    */
   private static boolean validArgs(String[] args) {
     if(args.length < 2) return false;

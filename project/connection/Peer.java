@@ -24,7 +24,7 @@ import runnables.*;
 import utils.Utils;
 
 /**
- * Class that represents the peer that receives messages from the client
+ * class that represents the peer that receives messages from the client
  */
 public class Peer implements RMI{
 
@@ -120,7 +120,7 @@ public class Peer implements RMI{
   /**
    * checks if valids passed to the peer are valid
    * @param  args the arguments received from the terminal
-   * @return boolean on wether the args are valid or not
+   * @return boolean on wether or not the args are valid
    */
   private static boolean validArgs(String[] args) {
     if(args.length != 9) return false;
@@ -149,7 +149,13 @@ public class Peer implements RMI{
     for(int i = 0; i < file.getChunks().size(); i++){
       try{
         Chunk chunk = file.getChunks().get(i);
-        String header = "PUTCHUNK " + version + " " + id + " " + file.getID() + " " + chunk.getNumber() + " " + replicationDegree + "\r\n\r\n";
+        String header = "PUTCHUNK";
+
+        if(version == 1.0)
+          header += " " + version + " " + id + " " + file.getID() + " " + chunk.getNumber() + " " + replicationDegree + "\r\n\r\n";
+        else if(version == 2.0)
+          header += "ENH " + version + " " + id + " " + file.getID() + " " + chunk.getNumber() + " " + replicationDegree + "\r\n\r\n";
+
         System.out.println("Sending " + header.substring(0,header.length() - 4) + "\n");
         byte[] message = Utils.concatenate(header.getBytes(), chunk.getBody());
         database.addReplicationDegree(chunk.getID(),0);

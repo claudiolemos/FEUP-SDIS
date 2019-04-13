@@ -11,14 +11,48 @@ import java.io.IOException;
 import database.Chunk;
 import utils.Utils;
 
+/**
+ * class used to receive messages from the multicast channels
+ */
 public class Receive implements Runnable {
 
+  /**
+   * header of the received message
+   */
   byte[] header;
+  /**
+   * body of the received message
+   */
   byte[] body;
-  int senderID, chunkNumber, replicationDegree;
-  String action, fileID;
+  /**
+   * id of the peer who sent the message
+   */
+  int senderID;
+  /**
+   * chunk number included in the received message
+   */
+  int chunkNumber;
+  /**
+   * replication degree included in the received message
+   */
+  int replicationDegree;
+  /**
+   * action included in the received message (PUTCHUNK, GETCHUNK,...)
+   */
+  String action;
+  /**
+   * file id included in the received message
+   */
+  String fileID;
+  /**
+   * version of the protocol being executed
+   */
   double version;
 
+  /**
+   * Receive constructor
+   * @param message content of the received message
+   */
   public Receive(byte[] message) {
     for(int i = 0; i < message.length - 4 + 1; i++)
       if(message[i] == '\r' && message[i+1] == '\n' && message[i+2] == '\r' && message[i+3] == '\n'){
@@ -29,9 +63,15 @@ public class Receive implements Runnable {
     parseHeader();
   }
 
+  /**
+   * when a new Receive thread is executed by one of the multicast channels, it calls the correct function based on the action
+   */
   public void run() {
     switch(action){
       case "PUTCHUNK":
+        putchunk();
+        break;
+      case "PUTCHUNKENH":
         putchunk();
         break;
       case "STORED":
@@ -52,6 +92,9 @@ public class Receive implements Runnable {
     }
   }
 
+  /**
+   * function that is called when a peer receives a PUTCHUNK message
+   */
   private synchronized void putchunk(){
     if(connection.Peer.getID() != senderID){
       try{
@@ -86,16 +129,25 @@ public class Receive implements Runnable {
     }
   }
 
+  /**
+   * function that is called when a peer receives a STORED message
+   */
   private synchronized void stored(){
     if(connection.Peer.getID() != senderID)
       connection.Peer.getDatabase().increaseReplicationDegree(Utils.getChunkID(fileID, chunkNumber));
   }
 
+  /**
+   * function that is called when a peer receives a DELETE message
+   */
   private synchronized void delete(){
     if(connection.Peer.getID() != senderID)
       connection.Peer.getDatabase().deleteChunks(fileID);
   }
 
+  /**
+   * function that is called when a peer receives a GETCHUNK message
+   */
   private synchronized void getchunk(){
     try{
       Thread.sleep(ThreadLocalRandom.current().nextInt(0, 401));
@@ -117,6 +169,9 @@ public class Receive implements Runnable {
     }
   }
 
+  /**
+   * function that is called when a peer receives a CHUNK message
+   */
   private synchronized void chunk(){
     if(connection.Peer.getID() != senderID){
       if(connection.Peer.getDatabase().needsWantedChunk(Utils.getChunkID(fileID, chunkNumber)))
@@ -126,6 +181,9 @@ public class Receive implements Runnable {
     }
   }
 
+  /**
+   * function that is called when a peer receives a REMOVED message
+   */
   private synchronized void removed(){
     try{
       if(connection.Peer.getID() != senderID){
@@ -144,6 +202,9 @@ public class Receive implements Runnable {
     }
   }
 
+  /**
+   * function used to parse the header of the message
+   */
   private void parseHeader(){
     String[] array = new String(header).trim().split(" ");
     action = array[0];
@@ -151,6 +212,6 @@ public class Receive implements Runnable {
     senderID = Integer.parseInt(array[2]);
     fileID = array[3];
     if(!action.equals("DELETE")) chunkNumber = Integer.parseInt(array[4]);
-    if(action.equals("PUTCHUNK")) replicationDegree = Integer.parseInt(array[5]);
+    if(action.equals("PUTCHUNK") || action.equals("PUTCHUNKENH")) replicationDegree = Integer.parseInt(array[5]);
   }
 }
