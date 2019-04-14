@@ -144,7 +144,13 @@ public class Peer implements RMI{
   public synchronized void backup(String filepath, int replicationDegree){
     Data file = new Data(filepath, replicationDegree);
     database.addFile(filepath, file);
-    System.out.println("Loaded " + filepath + " (" + file.getChunks().size() + " chunks). Initiating backup.\n");
+
+    if(file.exists())
+      System.out.println("Loaded " + filepath + " (" + file.getChunks().size() + " chunks). Initiating backup.\n");
+    else {
+      System.out.println(filepath + " doesn't exist.\n");
+      return;
+    }
 
     for(int i = 0; i < file.getChunks().size(); i++){
       try{
