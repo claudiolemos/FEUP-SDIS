@@ -1,5 +1,6 @@
 #!/bin/bash
-javac **/*.java
+# cd ..
+# javac **/*.java
 
 if [ $2 = "BACKUP" ]
   then

@@ -41,8 +41,7 @@ public class Data implements Serializable{
     this.file = new File(path);
     this.replicationDegree = replicationDegree;
     this.id = Utils.sha256(this.file.getName() + ':' + this.file.lastModified() + ':' + connection.Peer.getID());
-    if(file.exists())
-      createChunks();
+    createChunks();
   }
 
   /**
@@ -66,14 +65,6 @@ public class Data implements Serializable{
       System.err.println(e.toString());
       e.printStackTrace();
     }
-  }
-
-  /**
-   * checks if file exists
-   * @return boolean on wether or not the file exists
-   */
-  public boolean exists(){
-    return file.exists();
   }
 
   /**

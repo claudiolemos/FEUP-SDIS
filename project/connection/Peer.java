@@ -144,20 +144,18 @@ public class Peer implements RMI{
   public synchronized void backup(String filepath, int replicationDegree){
     Data file = new Data(filepath, replicationDegree);
     database.addFile(filepath, file);
-
-    if(file.exists())
-      System.out.println("Loaded " + filepath + " (" + file.getChunks().size() + " chunks). Initiating backup.\n");
-    else {
-      System.out.println(filepath + " doesn't exist.\n");
-      return;
-    }
+    System.out.println("Loaded " + filepath + " (" + file.getChunks().size() + " chunks). Initiating backup.\n");
 
     for(int i = 0; i < file.getChunks().size(); i++){
       try{
         Chunk chunk = file.getChunks().get(i);
         String header = "PUTCHUNK";
-        if(version == 2.0) header += "ENH";
-        header += " " + version + " " + id + " " + file.getID() + " " + chunk.getNumber() + " " + replicationDegree + "\r\n\r\n";
+
+        if(version == 1.0)
+          header += " " + version + " " + id + " " + file.getID() + " " + chunk.getNumber() + " " + replicationDegree + "\r\n\r\n";
+        else if(version == 2.0)
+          header += "ENH " + version + " " + id + " " + file.getID() + " " + chunk.getNumber() + " " + replicationDegree + "\r\n\r\n";
+
         System.out.println("Sending " + header.substring(0,header.length() - 4) + "\n");
         byte[] message = Utils.concatenate(header.getBytes(), chunk.getBody());
         database.addReplicationDegree(chunk.getID(),0);
